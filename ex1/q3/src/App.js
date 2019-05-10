@@ -2,6 +2,7 @@ import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 import cred from './cred.js'
+import Dropzone from 'react-dropzone'
 const AWS = require('aws-sdk')
 AWS.config.setPromisesDependency(null)
 const BUCKET_NAME = 'myinsta';
@@ -68,11 +69,44 @@ class App extends React.Component {
     return rowGallery;
   }
 
+  uploadFile(files) {
+    if(this.s3) {
+      const component = this;
+      files.forEach(file => {
+        const {name, type} = file;
+        if(!type.startsWith('image/')){
+          return
+        }
+        const params = {Body: file, Bucket: BUCKET_NAME, Key: name}
+        this.s3.putObject(params).promise().then(val => {
+          const getObjectParams = {Bucket: BUCKET_NAME, Key: name}
+          component.s3.getSignedUrl('getObject', getObjectParams, (err, url) => {
+          const {images} = component.state;
+          const newImages = images.concat([url]);
+          component.setState({images: newImages}) 
+          })
+        })
+      })
+    }
+  }
+
   render() {
     const test = this.imageFactory();
   return (
       <div className="App">
         <header className="App-header">
+        <Dropzone onDrop={this.uploadFile.bind(this)}>
+          {({getRootProps, getInputProps}) => (
+            <section>
+              <div {...getRootProps()}>
+                <input {...getInputProps()} />
+                <div className='Dropzone-style'>
+                  Drag 'n' drop some files here, or click to select files
+                </div>
+              </div>
+            </section>
+          )}
+        </Dropzone>
         <table>
         {test}
         </table>

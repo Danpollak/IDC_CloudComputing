@@ -23,6 +23,17 @@
   color: #61dafb;
 }
 
+.Dropzone-style {
+  background-color: #383c44;
+  height: 150px;
+  width: 600px;
+  vertical-align: middle;
+  display:table-cell;
+  border: solid;
+  border-color: black;
+  padding: 8px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
