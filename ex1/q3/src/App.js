@@ -3,6 +3,7 @@ import logo from './logo.svg';
 import './App.css';
 import cred from './cred.js'
 import Dropzone from 'react-dropzone'
+import _ from 'lodash'
 const AWS = require('aws-sdk')
 AWS.config.setPromisesDependency(null)
 const BUCKET_NAME = 'myinsta';
@@ -40,7 +41,10 @@ class App extends React.Component {
       const component = this;
       let urls = [];
       this.s3.listObjects({Delimiter: '/'}, function(err, data) {
-        const images = data.Contents.map((item) => item.Key);
+        const sortedItems = data.Contents.sort(function(a,b){
+          return new Date(b.LastModified) - new Date(a.LastModified);
+          }).sort((a,b) => a.StorageClass > b.StorageClass);
+        const images = sortedItems.map((item) => item.Key);
         images.forEach((imageKey) => {
           let params = {Bucket: BUCKET_NAME, Key: imageKey, Expires: 3600};
           urls.push(new Promise((resolve, reject) => {
@@ -82,7 +86,7 @@ class App extends React.Component {
           const getObjectParams = {Bucket: BUCKET_NAME, Key: name}
           component.s3.getSignedUrl('getObject', getObjectParams, (err, url) => {
           const {images} = component.state;
-          const newImages = images.concat([url]);
+          const newImages = [url].concat(images);
           component.setState({images: newImages}) 
           })
         })
@@ -90,8 +94,46 @@ class App extends React.Component {
     }
   }
 
+  updateStorageClasses() {
+    // get object list
+    if(this.s3){
+      const self = this;
+      this.s3.listObjects({Delimiter: '/'}, function(err, data) {
+        let items = data.Contents
+        const allImagesSize = items.length;
+        items = items.filter(item => item.StorageClass === "STANDARD" )
+        items.sort(function(a,b){
+        return new Date(a.LastModified) - new Date(b.LastModified);
+        })
+        const standardImagesSize = items.length;
+        const shouldTransferToStandardIA = standardImagesSize / allImagesSize > 0.2;
+        if(shouldTransferToStandardIA){
+          const transferItemKey = items.shift();
+          self.downgradeStorageClass(transferItemKey.Key, self)
+        }
+      })
+    }
+  }
+
+  downgradeStorageClass(itemKey, self){
+    const copyParams = {
+    Bucket: BUCKET_NAME, 
+    CopySource: `${BUCKET_NAME}/${itemKey}`, 
+    Key: `IA_${itemKey}`,
+    StorageClass: "STANDARD_IA"
+    };
+    self.s3.copyObject(copyParams).promise().then((err,data) => {
+      const deleteParams = {
+        Bucket: BUCKET_NAME, 
+        Key: itemKey,
+        };
+        self.s3.deleteObject(deleteParams,(err,data) => console.log(err ? err : "success deleteObject"));
+    })
+  }
+
   render() {
     const test = this.imageFactory();
+    this.updateStorageClasses();
   return (
       <div className="App">
         <header className="App-header">
