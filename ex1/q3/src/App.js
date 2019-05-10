@@ -8,9 +8,16 @@ const BUCKET_NAME = 'myinsta';
 
 const imageComponent = (src) => {
   return <td>
-    <img src={src} width="300px" height="300px" />
+    <img src={src} width="300px" height="300px" alt=''/>
   </td>
 }
+
+const imageRow = (images) => {
+  return <tr>
+    {images}
+  </tr>
+}
+
  
 class App extends React.Component {
   constructor() {
@@ -50,11 +57,15 @@ class App extends React.Component {
 
   imageFactory() {
     const {images} = this.state
-    const gallery = [];
-    for(let i=0;i<images.length; i++){
-      gallery.push(imageComponent(images[i]))
+    let gallery = [];
+    const rowGallery = [];
+    images.forEach((image) => gallery.push(imageComponent(image)))
+    while(gallery.length > 4){
+      rowGallery.push(imageRow(gallery.slice(0,4)));
+      gallery = gallery.slice(4);
     }
-    return gallery;
+    rowGallery.push(imageRow(gallery));
+    return rowGallery;
   }
 
   render() {
@@ -63,9 +74,7 @@ class App extends React.Component {
       <div className="App">
         <header className="App-header">
         <table>
-          <tr>
         {test}
-          </tr>
         </table>
         </header>
       </div>
