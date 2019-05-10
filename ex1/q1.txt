@@ -1,0 +1,5 @@
+aws ec2 create-key-pair --key-name MyKeyPair --query 'KeyMaterial' --output text > MyKeyPair.pem
+
+aws ec2 run-instances --image-id ami-0de53d8956e8dcf80 --count 1 --instance-type t2.micro --key-name MyKeyPair --placement AvailabilityZone=us-east-1b --security-group-ids sg-bb01c5e2 --subnet-id subnet-1c8fc232
+
+aws ec2 run-instances --image-id ami-0de53d8956e8dcf80 --count 1 --instance-type t2.micro --key-name MyKeyPair --placement AvailabilityZone=us-east-1b
